@@ -57,7 +57,7 @@ def bias_variable(shape):
 def conv2d(x, W):
   return tf.nn.conv2d(x, W, strides=[1,1,2,1], padding='SAME')
 
-def preprocessing_magn(magn,f=1/4):
+def preprocessing_magn(magn,f=1):
     temp=[]
     min = magn.min()
     # print(min)
@@ -65,19 +65,40 @@ def preprocessing_magn(magn,f=1/4):
         temp.append([int(round((magn[i]-min)/f))])
     return np.array(temp),min
 
-def return_magn(magn,min,f=1/4):
+def return_magn(magn,min,f=1):
     temp = []
     for i in range(len(magn)):
         temp.append(np.argmax(magn[i])*f+min)
     return np.array(temp)
 
-label,min=preprocessing_magn(label)
-magn_c_nums=label.max()+1
+def distribution_plot(label):
+    plt.hist(label,45)
+    plt.show()
+
+def nature_magn(magn):
+    if magn<=3.3:
+        return [0]
+    elif magn>3.3 and magn<4:
+        return [1]
+    elif magn>=4 and magn<5:
+        return [2]
+    elif magn>=5 :
+        return [3]
+
+print(label)
+distribution_plot(label)
+
+# label,min=preprocessing_magn(label)
+# print(min)
+
+# magn_c_nums=int(round(label.max())-round(label.min())+1)
+# label=list(map(lambda x: [int(round(x))],label))
+label=list(map(lambda x: nature_magn(x),label))
+print(label)
+magn_c_nums=4
 enc = OneHotEncoder()
 enc.fit(label)
 label=enc.transform(label).toarray()
-
-print(data.shape)
 print('magn_c_nums:',magn_c_nums)
 
 x_train,dis_train,y_train,x_test,dis_test,y_test=train_test_split(data,dis,label,test_size=0.2)
@@ -122,7 +143,7 @@ h_conv7 = tf.nn.relu(conv2d(h_conv6, W_conv7) + b_conv7)
 
 W_conv8 = weight_variable([1, 8, 32, 32])
 b_conv8 = bias_variable([32])
-h_conv8 = tf.nn.relu(conv2d(h_conv7, b_conv8) + b_conv8)
+h_conv8 = tf.nn.relu(conv2d(h_conv7, W_conv8) + b_conv8)
 
 
 keep_prob = tf.placeholder("float")
@@ -207,9 +228,9 @@ else:
 
 if not trainortest:
     p=y_conv.eval(feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0})
-    p=return_magn(p,min)
+    # p=return_magn(p,min)
     y=shock.test.labels
-    y=return_magn(y,min)
+    # y=return_magn(y,min)
     m=accuracy.eval(feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0})
     print("test acc_val %g" % accuracy.eval(
         feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0}))
@@ -225,8 +246,8 @@ if not trainortest:
 
     p=y_conv.eval(feed_dict={x: shock.train.inputs, d: shock.train.dis, y_: shock.train.labels, keep_prob: 1.0})
     y=shock.train.labels
-    p=return_magn(p,min)
-    y = return_magn(y,min)
+    # p=return_magn(p,min)
+    # y = return_magn(y,min)
     m = accuracy.eval(feed_dict={x: shock.train.inputs, d: shock.train.dis, y_: shock.train.labels, keep_prob: 1.0})
     print("train acc_val %g" % accuracy.eval(
         feed_dict={x: shock.train.inputs, d: shock.train.dis, y_: shock.train.labels, keep_prob: 1.0}))

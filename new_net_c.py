@@ -6,14 +6,15 @@ import os
 from sklearn.preprocessing import OneHotEncoder
 
 
-data=np.load('data.npy')
+data=np.load('data_filt.npy')
 label=np.load('magn.npy')
 dis=np.load('dis.npy')
 
-train_size=500000
+train_size=10000
 trainortest=True
 # trainortest=False
 k=0.001
+
 
 
 
@@ -35,9 +36,9 @@ class shock_data(object):
     def batch(self,size):
         data_len=len(self.inputs)
         data_batch_loc=np.random.randint(data_len, size=size)
-        a=self.inputs[data_batch_loc]
-        b=self.dis[data_batch_loc]
-        c=self.labels[data_batch_loc]
+        a = self.inputs[data_batch_loc]
+        b = self.dis[data_batch_loc]
+        c = self.labels[data_batch_loc]
         # print(np.shape(b))
         # print(b)
         return a,b,c
@@ -53,7 +54,38 @@ def weight_variable(shape):
 def bias_variable(shape):
   initial = tf.constant(0.1, shape=shape)
   return tf.Variable(initial)
-#
+
+def variable_with_weight_decay( shape, stddev, wd):
+    initializer = tf.truncated_normal_initializer(stddev=stddev)
+    var = tf.get_variable('weights', shape=shape,
+                            initializer=initializer)
+    return var
+
+def conv_layer( bottom, name, shape=None):
+    with tf.variable_scope(name) as scope:
+        stddev = 0.05
+        initW = tf.truncated_normal_initializer(stddev=stddev)
+        filter = tf.get_variable(name='filter', shape=shape, initializer=initW)
+        initB = tf.constant_initializer(0.0)
+        conv_bias = tf.get_variable(name='bias', shape=shape[3], initializer=initB)
+        conv = tf.nn.conv2d(bottom, filter, strides=[1, 2, 2, 1], padding='SAME')
+        relu = tf.nn.relu(tf.nn.bias_add(conv, conv_bias))
+    return relu, filter
+
+def fc_layer(bottom, name, shape=None):
+    with tf.variable_scope(name) as scope:
+        stddev = 0.05
+        wd = 5e-4
+        weight = variable_with_weight_decay(shape, stddev, wd)
+        initB = tf.constant_initializer(0.0)
+        bias = tf.get_variable(name='bias', shape=shape[1], initializer=initB)
+        fc = tf.nn.bias_add(tf.matmul(bottom, weight), bias)
+        if name == 'output':
+            return fc ,weight
+        else:
+            relu = tf.nn.relu(fc)
+    return relu, weight
+
 
 
 def conv2d(x, W):
@@ -63,7 +95,8 @@ def max_pool_2x2(x):
   return tf.nn.max_pool(x, ksize=[1, 1, 4, 1],
                         strides=[1, 1, 3, 1], padding='SAME')
 
-def preprocessing_magn(magn,f=1/4):
+
+def preprocessing_magn(magn,f=0.3):
     temp=[]
     min = magn.min()
     # print(min)
@@ -71,7 +104,7 @@ def preprocessing_magn(magn,f=1/4):
         temp.append([int(round((magn[i]-min)/f))])
     return np.array(temp),min
 
-def return_magn(magn,min,f=1/4):
+def return_magn(magn,min,f=0.3):
     temp = []
     for i in range(len(magn)):
         temp.append(np.argmax(magn[i])*f+min)
@@ -91,76 +124,57 @@ shock=shock_all(train,test)
 
 
 
-
-x = tf.placeholder("float", shape=[None, 1,1000,3])
+x = tf.placeholder("float", shape=[None, 1,1200,3])
 d = tf.placeholder("float", shape=[None,4])
-y_ = tf.placeholder("float", shape=[None,magn_c_nums])
-W_conv1 = weight_variable([1, 8, 3, 32])
-b_conv1 = bias_variable([32])
-h_conv1 = tf.nn.relu(conv2d(x, W_conv1) + b_conv1)
-h_conv1 = max_pool_2x2(h_conv1)
-
-
-W_conv2 = weight_variable([1, 8, 32, 32])
-b_conv2 = bias_variable([32])
-h_conv2 = tf.nn.relu(conv2d(h_conv1, W_conv2) + b_conv2)
-h_conv2 = max_pool_2x2(h_conv2)
-print(h_conv2.shape)
-
-
-W_conv3 = weight_variable([1, 8, 32, 32])
-b_conv3 = bias_variable([32])
-h_conv3 = tf.nn.relu(conv2d(h_conv2, W_conv3) + b_conv3)
-h_conv3 = max_pool_2x2(h_conv3)
-
-
-W_conv4 = weight_variable([1, 8, 32, 32])
-b_conv4 = bias_variable([32])
-h_conv4 = tf.nn.relu(conv2d(h_conv3, W_conv4) + b_conv4)
-h_conv4 = max_pool_2x2(h_conv4)
-print(h_conv4.shape)
+y_ = tf.placeholder("float", shape=[None])
 
 
 
-h_flat1 = tf.reshape(h_conv4, [-1, 13*32])
-print(h_flat1.shape)
+conv1, W_conv1 = conv_layer(x, 'conv1', [1,4,3,32])
+print ('conv1.shape', conv1.shape)
+conv2, W_conv2= conv_layer(conv1, 'conv2', [1,4,32,32])
+print ('conv2.shape', conv2.shape)
+conv3, W_conv3 = conv_layer(conv2, 'conv3', [1,4,32,32])
+print ('conv3.shape', conv3.shape)
+conv4, W_conv4= conv_layer(conv3, 'conv4', [1,4,32,32])
+print ('conv4.shape', conv4.shape)
+conv5, W_conv5 = conv_layer(conv4, 'conv5', [1,4,32,32])
+print ('conv5.shape', conv5.shape)
+conv6, W_conv6 = conv_layer(conv5, 'conv6', [1,4,32,32])
+print ('conv6.shape', conv6.shape)
+conv7, W_conv7 = conv_layer(conv6, 'conv7', [1,4,32,32])
+print ('conv7.shape', conv7.shape)
+conv8, W_conv8 = conv_layer(conv7, 'conv8', [1,4,32,32])
+print ('conv8.shape', conv8.shape)
 
-W_fc1 = weight_variable([13*32, 32])
-b_fc1 = bias_variable([32])
-h_fc1 = tf.nn.relu(tf.matmul(h_flat1, W_fc1) + b_fc1)
-print(h_fc1.shape)
+conv8_shape = conv8.get_shape().as_list()
+h_flat1 = tf.reshape(conv8, [-1, conv8_shape[2]* conv8_shape[3]])
+print('h_flat1.shape', h_flat1.shape)
 
+h_fc1, W_fc1 = fc_layer(h_flat1, 'fc1',shape= [conv8_shape[2]* conv8_shape[3],16])
+print('h_fc1.shape',h_fc1.shape)
+
+h_fc1 = tf.concat([h_fc1,d],1)
 keep_prob = tf.placeholder("float")
+h_fc2, W_fc2 = fc_layer(h_fc1, 'fc2',shape= [20,16])
+print('h_fc2.shape',h_fc2.shape)
 
-W_fc2 = weight_variable([32, 32])
-b_fc2 = bias_variable([32])
-h_fc2=tf.nn.relu(tf.matmul(h_fc1, W_fc2) + b_fc2)
-print(h_fc2.shape)
+h_fc2=tf.nn.dropout(h_fc2, keep_prob)
 
-h_fc2 = tf.concat([h_fc2,d],1)
-
-W_fc3 = weight_variable([32+4, 15])
-b_fc3 = bias_variable([15])
-h_fc3= tf.nn.relu(tf.matmul(h_fc2, W_fc3) + b_fc3)
-
-h_fc3=tf.nn.dropout(h_fc3, keep_prob)
-
-W_fc4 = weight_variable([15, magn_c_nums])
-b_fc4 = bias_variable([magn_c_nums])
-y_conv= tf.nn.softmax(tf.matmul(h_fc3, W_fc4) + b_fc4)
+y_conv, W_out = fc_layer(h_fc2, 'output',shape= [16,1])
 print(y_conv.shape)
 
 
 regularizers = k*((tf.nn.l2_loss(W_conv1) + tf.nn.l2_loss(W_conv2) + tf.nn.l2_loss(W_conv3) + tf.nn.l2_loss(W_conv4) +
-                 tf.nn.l2_loss(W_fc1) + tf.nn.l2_loss(W_fc2) + tf.nn.l2_loss(W_fc3)+ tf.nn.l2_loss(W_fc4)))
+                 tf.nn.l2_loss(W_conv5) + tf.nn.l2_loss(W_conv6) + tf.nn.l2_loss(W_conv7) +tf.nn.l2_loss(W_conv8) +
+                 tf.nn.l2_loss(W_fc1) + tf.nn.l2_loss(W_fc2) + tf.nn.l2_loss(W_out)))
+
+
 
 cross_entropy = -tf.reduce_mean(y_*tf.log(tf.clip_by_value(y_conv,1e-5,1)))
 loss=cross_entropy+regularizers
-mse = tf.reduce_mean(tf.square(y_-y_conv))
 
 train_step = tf.train.AdamOptimizer(1e-4).minimize(loss)
-correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 saver = tf.train.Saver()
 sess.run(tf.global_variables_initializer())
 
@@ -172,18 +186,15 @@ if trainortest:
       batch = shock.train.batch(50)
 
       if i%1000 == 0:
-          cross_entropy_val = cross_entropy.eval(feed_dict={x:batch[0], d:batch[1],y_: batch[2], keep_prob: 1.0})
-          print("step %d/%d, training cross_entropy_val %g"%(i, train_size, cross_entropy_val))
-          regularizers_val = regularizers.eval(feed_dict={x: batch[0], d: batch[1], y_: batch[2], keep_prob: 1.0})
-          print("step %d/%d, training regularizers_val %g" % (i, train_size, regularizers_val))
-          acc_val = accuracy.eval(feed_dict={x: batch[0], d: batch[1], y_: batch[2], keep_prob: 1.0})
-          print("step %d/%d, training acc_val %g" % (i, train_size,acc_val))
-          print("test acc_val %g" % accuracy.eval(
-              feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0}))
+          regularizers_val = regularizers.eval(feed_dict={x:batch[0], d:batch[1],y_: batch[2], keep_prob: 1.0})
+          print("step %d/%d, training regularizers_val %g"%(i, train_size, regularizers_val))
+          mse_val = mse.eval(feed_dict={x: batch[0], d: batch[1], y_: batch[2], keep_prob: 1.0})
+          print("step %d/%d, training mse_val %g" % (i, train_size,mse_val))
           print("test mse_val %g" % mse.eval(
               feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0}))
-          train_l.append(acc_val)
-          test_l.append(accuracy.eval(
+
+          train_l.append(mse_val)
+          test_l.append(mse.eval(
               feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0}))
 
       train_step.run(feed_dict={x: batch[0], d:batch[1], y_: batch[2], keep_prob: 0.5})
@@ -195,17 +206,14 @@ if trainortest:
               saver.save(sess, './new_net_model/model.ckpt')
 
 
-    plt.plot(train_l, c='red', label='train')
-    plt.plot(test_l, c='black', label='test')
+    plt.plot(train_l[4:], c='red', label='train')
+    plt.plot(test_l[4:], c='black', label='test')
     plt.ylabel(' acc')
     plt.legend()
     plt.show()
     p=y_conv.eval(feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0})
-    p=return_magn(p,min)
     y=shock.test.labels
-    y=return_magn(y,min)
-    m=accuracy.eval(feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0})
-    print("test acc_val %g" % accuracy.eval(
+    print("test mse_val %g" % mse.eval(
         feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0}))
     plt.figure(figsize=(8, 5), dpi=80)
     plt.plot(y, c='red',label='y')
@@ -219,11 +227,9 @@ else:
 
 if not trainortest:
     p=y_conv.eval(feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0})
-    p=return_magn(p,min)
     y=shock.test.labels
-    y=return_magn(y,min)
-    m=accuracy.eval(feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0})
-    print("test acc_val %g" % accuracy.eval(
+    m=mse.eval(feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0})
+    print("test mse_val %g" % mse.eval(
         feed_dict={x: shock.test.inputs, d: shock.test.dis, y_: shock.test.labels, keep_prob: 1.0}))
     plt.figure(figsize=(8, 5), dpi=80)
     plt.plot(y, c='red',label='y')
@@ -237,10 +243,8 @@ if not trainortest:
 
     p=y_conv.eval(feed_dict={x: shock.train.inputs, d: shock.train.dis, y_: shock.train.labels, keep_prob: 1.0})
     y=shock.train.labels
-    p=return_magn(p,min)
-    y = return_magn(y,min)
-    m = accuracy.eval(feed_dict={x: shock.train.inputs, d: shock.train.dis, y_: shock.train.labels, keep_prob: 1.0})
-    print("train acc_val %g" % accuracy.eval(
+    m = mse.eval(feed_dict={x: shock.train.inputs, d: shock.train.dis, y_: shock.train.labels, keep_prob: 1.0})
+    print("train acc_val %g" % mse.eval(
         feed_dict={x: shock.train.inputs, d: shock.train.dis, y_: shock.train.labels, keep_prob: 1.0}))
     plt.figure(figsize=(8, 5), dpi=80)
     plt.plot(y, c='red',label='y')
@@ -250,3 +254,4 @@ if not trainortest:
     plt.show()
     print(m)
     print(p)
+
