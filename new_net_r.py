@@ -116,9 +116,9 @@ def max_pool_2x2(x):
 
 x_train,dis_train,y_train,x_test,dis_test,y_test=train_test_split(data,dis,label,test_size=0.2)
 sess = tf.InteractiveSession()
-train = shock_data(x_train, dis_train,y_train)
-test  = shock_data(x_test, dis_test,y_test)
-shock=shock_all(train,test)
+train = shock_data(x_train, dis_train, y_train)
+test = shock_data(x_test, dis_test, y_test)
+shock = shock_all(train, test)
 
 
 
@@ -180,7 +180,7 @@ print(y_conv.shape)
 
 
 regularizers = k*((tf.nn.l2_loss(W_conv1) + tf.nn.l2_loss(W_conv2) + tf.nn.l2_loss(W_conv3) + tf.nn.l2_loss(W_conv4) +
-                 tf.nn.l2_loss(W_conv5) + tf.nn.l2_loss(W_conv6) + tf.nn.l2_loss(W_conv7) +tf.nn.l2_loss(W_conv8) +
+                 tf.nn.l2_loss(W_conv5) + tf.nn.l2_loss(W_conv6) + tf.nn.l2_loss(W_conv7) + tf.nn.l2_loss(W_conv8) +
                  tf.nn.l2_loss(W_fc1) + tf.nn.l2_loss(W_fc2) + tf.nn.l2_loss(W_out)))
 
 

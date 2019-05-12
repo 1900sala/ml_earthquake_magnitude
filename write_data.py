@@ -5,24 +5,24 @@ import os
 from p_time import *
 import matplotlib.pyplot as plt
 
-threshold=25
-time_window=500
+threshold = 25
+time_window = 500
 
 PATH = ['../data57/']
 def eachFile(filepath):
     data = []
-    magn=[]
-    dis=[]
+    magn = []
+    dis = []
     for labelnanme in filepath:
         pathDir = os.listdir(labelnanme)
-        tag=0
+        tag = 0
         tempdata = []
         tempdata_f = []
         tempdata_n = []
-        if labelnanme=='../data57/':
+        if labelnanme == '../data57/':
             for allDir in pathDir:
 
-                if tag%200==0:
+                if tag % 200 == 0:
                     print(tag)
                     print(np.shape(data))
                 child = os.path.join('%s%s' % (labelnanme, allDir))
@@ -37,8 +37,8 @@ def eachFile(filepath):
                 if (tag-1)%3 == 0:
                     det_longitude = st[0].stats.knet.evla - st[0].stats.knet.stla
                     det_latitude = st[0].stats.knet.evlo - st[0].stats.knet.stlo
-                    average_st = moving_average(st[0].data,10,'simple')
-                    index = find_index(average_st,threshold)
+                    average_st = moving_average(st[0].data, 10, 'simple')
+                    index = find_index(average_st, threshold)
 
                     if index - 50<0:
                         left = 0
@@ -89,12 +89,12 @@ def eachFile(filepath):
                     tempdata_f = []
                     tempdata_n = []
 
-    return np.array(data),np.array(magn),np.array(dis)
+    return np.array(data), np.array(magn), np.array(dis)
 
-data,magn,dis=eachFile(PATH)
-np.save("n_data57.npy",data)
-np.save("n_magn57.npy",magn)
-np.save("n_dis57.npy",dis)
+data, magn, dis = eachFile(PATH)
+np.save("n_data57.npy", data)
+np.save("n_magn57.npy", magn)
+np.save("n_dis57.npy", dis)
 print(np.shape(data))
 print(np.shape(magn))
 print(np.shape(dis))
