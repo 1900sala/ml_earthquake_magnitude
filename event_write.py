@@ -11,20 +11,20 @@ time_window = 500
 PATH = ['../data57/']
 def eachFile(filepath):
 
-    magn=[]
+    magn = []
     for labelnanme in filepath:
         pathDir = os.listdir(labelnanme)
-        tag=0
-        if labelnanme=='../data57/':
+        tag = 0
+        if labelnanme == '../data57/':
             for allDir in pathDir:
                 # print(tag)
-                if tag%200==0:
-                    print(tag,allDir[:-3])
+                if tag % 200 == 0:
+                    print(tag, allDir[:-3])
                 # print(allDir)
                 child = os.path.join('%s%s' % (labelnanme, allDir))
                 tag = tag + 1
                 st = read(str(child))
-                if (tag-1)%3 == 0:
+                if (tag-1) % 3 == 0:
                     det_longitude = st[0].stats.knet.evla - st[0].stats.knet.stla
                     det_latitude = st[0].stats.knet.evlo - st[0].stats.knet.stlo
 
